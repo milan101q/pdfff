@@ -79,36 +79,65 @@ export class PDFEngine {
     // Extract text content with a base viewport (scale 1) for consistent coordinates
     const baseViewport = page.getViewport({ scale: 1 });
     const textContent = await page.getTextContent();
-    const textItems: TextItem[] = [];
+    let rawItems: any[] = [...textContent.items];
     
-    // Use a temporary canvas to measure word widths more accurately
+    // Grouping logic for sentence mode
+    if (detectionMode === 'sentence') {
+      const groupedItems: any[] = [];
+      let currentGroup: any = null;
+
+      rawItems.forEach((item: any) => {
+        if (!item.str || item.str.trim().length === 0) return;
+
+        const transform = pdfjs.Util.transform(baseViewport.transform, item.transform);
+        const x = transform[4];
+        const fontSize = Math.sqrt(item.transform[0] * item.transform[0] + item.transform[1] * item.transform[1]);
+        const height = item.height || fontSize;
+        const y = transform[5] - height;
+
+        if (!currentGroup) {
+          currentGroup = { ...item, x, y, fontSize, height, fullStr: item.str, items: [item] };
+        } else {
+          const verticalDiff = Math.abs(y - currentGroup.y);
+          const horizontalDiff = x - (currentGroup.x + currentGroup.width);
+          
+          // If on the same line (roughly) and close horizontally
+          if (verticalDiff < fontSize * 0.5 && horizontalDiff < fontSize * 2) {
+            currentGroup.fullStr += (horizontalDiff > fontSize * 0.2 ? " " : "") + item.str;
+            currentGroup.width += horizontalDiff + item.width;
+            currentGroup.items.push(item);
+          } else {
+            groupedItems.push(currentGroup);
+            currentGroup = { ...item, x, y, fontSize, height, fullStr: item.str, items: [item] };
+          }
+        }
+      });
+      if (currentGroup) groupedItems.push(currentGroup);
+      rawItems = groupedItems;
+    }
+
+    const textItems: TextItem[] = [];
     const measureCanvas = document.createElement('canvas');
     const measureCtx = measureCanvas.getContext('2d')!;
 
-    textContent.items.forEach((item: any, idx: number) => {
-      const str = item.str;
+    rawItems.forEach((item: any, idx: number) => {
+      const str = item.fullStr || item.str;
       if (!str || str.trim().length === 0) return;
-
       if (item.width < 1 && str.length > 1) return;
 
-      const transform = pdfjs.Util.transform(baseViewport.transform, item.transform);
-      const x = transform[4];
-      const fontSize = Math.sqrt(item.transform[0] * item.transform[0] + item.transform[1] * item.transform[1]);
+      const transform = item.transform ? pdfjs.Util.transform(baseViewport.transform, item.transform) : null;
+      const x = item.x !== undefined ? item.x : transform![4];
+      const fontSize = item.fontSize !== undefined ? item.fontSize : Math.sqrt(item.transform[0] * item.transform[0] + item.transform[1] * item.transform[1]);
       const height = item.height || fontSize;
-      const y = transform[5] - height;
+      const y = item.y !== undefined ? item.y : transform![5] - height;
       
-      // Set font for measurement
       measureCtx.font = `${fontSize}px ${item.fontName || 'sans-serif'}`;
       
-      if (detectionMode === 'word') {
-        // Split by words and spaces
+      if (detectionMode === 'word' && !item.fullStr) {
         const parts = str.split(/(\s+)/);
         let currentX = x;
-        
-        parts.forEach((part, pIdx) => {
-          // Measure the part width using the canvas context for better accuracy than simple char count
+        parts.forEach((part: string, pIdx: number) => {
           const partWidth = measureCtx.measureText(part).width;
-          
           if (part.trim().length > 0) {
             textItems.push({
               id: `text-${pageIndex}-${idx}-${pIdx}`,
@@ -124,7 +153,6 @@ export class PDFEngine {
           currentX += partWidth;
         });
       } else {
-        // Sentence/Block mode - use the full item string
         textItems.push({
           id: `text-${pageIndex}-${idx}`,
           str: str,
