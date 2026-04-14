@@ -1070,12 +1070,14 @@ function AnnotationItem({
   annotation: Annotation, 
   isSelected: boolean, 
   onSelect: () => void, 
-  onUpdate: (updates: Partial<Annotation> | { id: 'DELETE' | 'COMMIT' }) => void,
+  onUpdate: (updates: Partial<Annotation> | { id: 'DELETE' | 'COMMIT' | 'DESELECT' }) => void,
   scale: number,
   key?: any
 }) {
   const isDragging = useRef(false);
+  const isResizing = useRef(false);
   const startPos = useRef({ x: 0, y: 0 });
+  const startSize = useRef({ width: 0, height: 0 });
 
   // Map PDF fonts to system fonts for UI
   const getFontFamily = (pdfFont?: string) => {
@@ -1145,6 +1147,36 @@ function AnnotationItem({
     window.addEventListener('touchend', handleTouchEnd);
   };
 
+  const handleResizeMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    isResizing.current = true;
+    startPos.current = { x: e.clientX, y: e.clientY };
+    startSize.current = { 
+      width: annotation.width || 0, 
+      height: annotation.height || 0 
+    };
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (isResizing.current) {
+        const deltaX = (moveEvent.clientX - startPos.current.x) / scale;
+        const deltaY = (moveEvent.clientY - startPos.current.y) / scale;
+        onUpdate({
+          width: Math.max(10, startSize.current.width + deltaX),
+          height: Math.max(10, startSize.current.height + deltaY)
+        });
+      }
+    };
+
+    const handleMouseUp = () => {
+      isResizing.current = false;
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
   return (
     <div 
       onMouseDown={handleMouseDown}
@@ -1166,7 +1198,7 @@ function AnnotationItem({
       }}
     >
       {annotation.type === 'text' || annotation.type === 'edit' ? (
-        <div className="relative flex items-center h-full">
+        <div className="relative flex items-center h-full w-full">
           {isSelected && (annotation.type === 'edit' || annotation.type === 'text') ? (
             <input
               autoFocus
@@ -1190,7 +1222,7 @@ function AnnotationItem({
             />
           ) : (
             <div 
-              className="whitespace-nowrap px-0.5"
+              className="whitespace-nowrap px-0.5 w-full h-full"
               style={{ fontFamily: 'inherit' }}
             >
               {annotation.content || (annotation.type === 'edit' ? '' : ' ')}
@@ -1232,7 +1264,10 @@ function AnnotationItem({
       )}
       
       {isSelected && (
-        <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-accent cursor-nwse-resize" />
+        <div 
+          onMouseDown={handleResizeMouseDown}
+          className="absolute -bottom-1 -right-1 w-3 h-3 bg-accent cursor-nwse-resize rounded-full border border-white z-30 shadow-sm" 
+        />
       )}
     </div>
   );
