@@ -386,7 +386,7 @@ export default function App() {
           className="max-w-2xl w-full"
         >
           <div className="text-center mb-12">
-            <h1 className="text-5xl font-serif italic tracking-tight text-accent mb-4">PRÉCIS PDF</h1>
+            <h1 className="text-5xl font-serif italic tracking-tight text-accent mb-4">INSPECTED PDF</h1>
             <p className="text-xl text-text-dim">Professional PDF editing with precise control and advanced features.</p>
           </div>
 
@@ -434,7 +434,7 @@ export default function App() {
         <header className="h-[60px] bg-bg-panel border-b border-border-custom flex items-center justify-between px-6 z-50">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 mr-6">
-              <span className="font-serif italic text-xl tracking-wider text-accent">PRÉCIS PDF</span>
+              <span className="font-serif italic text-xl tracking-wider text-accent">INSPECTED PDF</span>
             </div>
             
             <Separator orientation="vertical" className="h-8 bg-border-custom" />
