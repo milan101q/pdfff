@@ -201,7 +201,12 @@ export default function App() {
   }, [renderCurrentPage]);
 
   const handleCanvasClick = (e: React.MouseEvent) => {
-    if (!canvasRef.current || activeTool === 'select') return;
+    if (!canvasRef.current) return;
+    
+    if (activeTool === 'select') {
+      setSelectedAnnotationId(null);
+      return;
+    }
 
     const rect = canvasRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / scale;
@@ -701,6 +706,8 @@ export default function App() {
                           deleteAnnotation(ann.id);
                         } else if (updates.id === 'COMMIT') {
                           commitAnnotationUpdate(ann.id, {});
+                        } else if (updates.id === 'DESELECT') {
+                          setSelectedAnnotationId(null);
                         }
                       } else {
                         updateAnnotation(ann.id, updates);
@@ -1168,7 +1175,10 @@ function AnnotationItem({
               onChange={(e) => onUpdate({ content: e.target.value })}
               onBlur={() => onUpdate({ id: 'COMMIT' })}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                if (e.key === 'Enter') {
+                  (e.target as HTMLInputElement).blur();
+                  onUpdate({ id: 'DESELECT' });
+                }
               }}
               style={{
                 fontSize: 'inherit',
