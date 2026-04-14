@@ -16,7 +16,9 @@ import {
   Undo2,
   Redo2,
   ScanText,
-  WholeWord
+  WholeWord,
+  Copy,
+  Clipboard
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'motion/react';
@@ -57,6 +59,7 @@ export default function App() {
   const [isRendering, setIsRendering] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [clipboard, setClipboard] = useState<Annotation | null>(null);
   
   const [isExporting, setIsExporting] = useState(false);
   const [detectionMode, setDetectionMode] = useState<'word' | 'sentence'>('word');
@@ -65,26 +68,6 @@ export default function App() {
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
-        if (e.shiftKey) {
-          redo();
-        } else {
-          undo();
-        }
-        return;
-      }
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedAnnotationId && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName || '')) {
-          deleteAnnotation(selectedAnnotationId);
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedAnnotationId]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -145,6 +128,55 @@ export default function App() {
     setAnnotations(newAnnotations);
     pushToHistory(newAnnotations);
   };
+
+  const copy = useCallback(() => {
+    const selected = annotations.find(a => a.id === selectedAnnotationId);
+    if (selected) {
+      setClipboard(JSON.parse(JSON.stringify(selected)));
+    }
+  }, [annotations, selectedAnnotationId]);
+
+  const paste = useCallback(() => {
+    if (clipboard) {
+      const newAnnotation: Annotation = {
+        ...JSON.parse(JSON.stringify(clipboard)),
+        id: Math.random().toString(36).substr(2, 9),
+        pageIndex: currentPage,
+        x: clipboard.x + 20,
+        y: clipboard.y + 20
+      };
+      updateAnnotationsWithHistory([...annotations, newAnnotation]);
+      setSelectedAnnotationId(newAnnotation.id);
+    }
+  }, [clipboard, annotations, currentPage, updateAnnotationsWithHistory]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        if (e.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
+        copy();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
+        paste();
+        return;
+      }
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedAnnotationId && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName || '')) {
+          deleteAnnotation(selectedAnnotationId);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedAnnotationId, undo, redo, copy, paste]);
 
   const renderCurrentPage = useCallback(async () => {
     if (!file || isRendering) return;
@@ -437,6 +469,21 @@ export default function App() {
                   onClick={redo}
                   icon={Redo2}
                   label="Redo (Ctrl+Shift+Z)"
+                />
+              </div>
+              <Separator orientation="vertical" className="h-4 mx-1 bg-border-custom" />
+              <div className="flex items-center gap-1">
+                <ToolbarButton 
+                  active={false} 
+                  onClick={copy}
+                  icon={Copy}
+                  label="Copy (Ctrl+C)"
+                />
+                <ToolbarButton 
+                  active={false} 
+                  onClick={paste}
+                  icon={Clipboard}
+                  label="Paste (Ctrl+V)"
                 />
               </div>
               <Separator orientation="vertical" className="h-4 mx-1 bg-border-custom" />
