@@ -62,6 +62,7 @@ export default function App() {
   const [clipboard, setClipboard] = useState<Annotation | null>(null);
   
   const [isExporting, setIsExporting] = useState(false);
+  const [isCombining, setIsCombining] = useState(false);
   const [detectionMode, setDetectionMode] = useState<'word' | 'sentence'>('word');
   const [history, setHistory] = useState<Annotation[][]>([[]]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -302,6 +303,37 @@ export default function App() {
     }
   };
 
+  const handleCombinePDFs = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf';
+    input.multiple = true;
+    input.onchange = async (e) => {
+      const files = Array.from((e.target as HTMLInputElement).files || []);
+      if (files.length < 2) {
+        alert("Please select at least 2 PDF files to combine.");
+        return;
+      }
+      setIsCombining(true);
+      try {
+        const combinedBytes = await engine.combinePDFs(files);
+        const blob = new Blob([combinedBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `combined_${new Date().getTime()}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error("Error combining PDFs:", err);
+        alert("Failed to combine PDFs. Please check if the files are valid.");
+      } finally {
+        setIsCombining(false);
+      }
+    };
+    input.click();
+  };
+
   const deleteAnnotation = (id: string) => {
     updateAnnotationsWithHistory(annotations.filter(a => a.id !== id));
     setSelectedAnnotationId(null);
@@ -422,6 +454,12 @@ export default function App() {
                 }}
                 icon={FileUp}
                 label="New Document"
+              />
+              <ToolbarButton 
+                active={isCombining} 
+                onClick={handleCombinePDFs}
+                icon={Layers}
+                label="Combine PDFs"
               />
             </div>
 

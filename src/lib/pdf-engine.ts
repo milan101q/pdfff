@@ -190,6 +190,17 @@ export class PDFEngine {
     this.pdfDoc.insertPage(toIndex, page);
   }
 
+  async combinePDFs(files: File[]): Promise<Uint8Array> {
+    const combinedDoc = await PDFDocument.create();
+    for (const file of files) {
+      const arrayBuffer = await file.arrayBuffer();
+      const doc = await PDFDocument.load(arrayBuffer);
+      const pages = await combinedDoc.copyPages(doc, doc.getPageIndices());
+      pages.forEach(page => combinedDoc.addPage(page));
+    }
+    return await combinedDoc.save();
+  }
+
   async save(annotations: Annotation[]): Promise<Uint8Array> {
     if (!this.pdfDoc) throw new Error('PDF not loaded');
 
