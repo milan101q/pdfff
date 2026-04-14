@@ -369,6 +369,26 @@ export default function App() {
             </div>
             
             <Separator orientation="vertical" className="h-8 bg-border-custom" />
+
+            <div className="flex items-center gap-1">
+              <ToolbarButton 
+                active={false} 
+                onClick={() => {
+                  setFile(null);
+                  setAnnotations([]);
+                  setHistory([[]]);
+                  setHistoryIndex(0);
+                  setCurrentPage(0);
+                  setPageCount(0);
+                  setPageInfo(null);
+                  setTextItems([]);
+                }}
+                icon={FileUp}
+                label="New Document"
+              />
+            </div>
+
+            <Separator orientation="vertical" className="h-8 bg-border-custom" />
             
             <div className="flex items-center gap-1">
               <ToolbarButton 
@@ -1093,7 +1113,7 @@ function AnnotationItem({
     >
       {annotation.type === 'text' || annotation.type === 'edit' ? (
         <div className="relative flex items-center h-full">
-          {isSelected && annotation.type === 'edit' ? (
+          {isSelected && (annotation.type === 'edit' || annotation.type === 'text') ? (
             <input
               autoFocus
               className="bg-white text-black border-none outline-none p-0 m-0 w-full h-full shadow-[0_0_0_1px_rgba(212,175,55,0.5)] rounded-sm"
@@ -1108,6 +1128,7 @@ function AnnotationItem({
                 fontFamily: 'inherit',
                 width: '100%',
                 height: '100%',
+                minWidth: '20px'
               }}
             />
           ) : (
