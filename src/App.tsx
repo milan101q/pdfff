@@ -1039,6 +1039,9 @@ export default function App() {
           <div className="flex items-center gap-4">
             <span>Selection: {selectedAnnotation ? `[${selectedAnnotation.type.toUpperCase()}] x:${Math.round(selectedAnnotation.x)} y:${Math.round(selectedAnnotation.y)}` : 'None'}</span>
           </div>
+          <div className="flex-1 text-center opacity-50">
+            Presented by Pre Purchase Inspection LLC team
+          </div>
           <div className="flex items-center gap-6">
             <span>Zoom: {Math.round(scale * 100)}%</span>
             <span>Engine: High Fidelity</span>
