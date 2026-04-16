@@ -387,7 +387,7 @@ export default function App() {
         >
           <div className="text-center mb-12">
             <h1 className="text-5xl font-serif italic tracking-tight text-accent mb-4">INSPECTED PDF</h1>
-            <p className="text-xl text-text-dim">Professional PDF editing with precise control and advanced features.</p>
+            <p className="text-xl text-text-dim">by Pre Purchase Inspection LLC.</p>
           </div>
 
           <div 
